@@ -6,6 +6,8 @@ from webhook import send_webhook
 import cv2
 from picamera2 import Picamera2
 
+model = ImageModel.load('Lobe/model')
+
 # haarcascade and picamera init
 face_detector = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
 cv2.startWindowThread()
@@ -16,6 +18,35 @@ picam2.start()
 
 webhook_url = 'https://discord.com/api/webhooks/1180843360295067778/Qtzz-yuvcDb1h4hptWfLDprB_HWWlN4kz23082--97vZTj04gaJ804-G5uVDC2-CDU6V'
 
+# 2nd camera init
+camera = Picamera2()
+camera.start()
+
+def take_photo():
+    camera.start_preview(alpha=200)
+    time.sleep(2)
+    # camera rotation
+    # camera.rotation = 270
+    camera.capture('images/images.jpg')
+    camera.stop_preview()
+    time.sleep(2)
+
+def led_select(label):
+    print(label)
+    if (label == "waste"):
+        GPIO.out(green_garbage, GPIO.HIGH)
+        time.sleep(5)
+    if (label == "recycle"):
+        GPIO.out(green_recycle, GPIO.HIGH)
+        time.sleep(5)
+    if (label == "compost"):
+        GPIO.out(green_compost, GPIO.HIGH)
+        time.sleep(5)
+    else:
+        GPIO.out(green_garbage, GPIO.LOW)
+        GPIO.out(green_recycle, GPIO.LOW)
+        GPIO.out(green_compost, GPIO.LOW)
+        
 # Initialize the last sent notification time
 g_last_notification_time = 0
 r_last_notification_time = 0
@@ -61,7 +92,6 @@ if __name__ == '__main__':
             for (x, y, w, h) in faces:
                 cv2.rectangle(im, (x, y), (x + w, y + h), (0, 255, 0))
                 print("Face found!")
-                GPIO.output(green_garbage, GPIO.HIGH)
                 if (not message_played or (current_time - last_detection_time) > 15): # Message is not replaying itself 15 second of last play
                     pygame.mixer.music.play() # plays instructions
                     message_played = True
@@ -72,41 +102,41 @@ if __name__ == '__main__':
             cv2.imshow("Faces", im)
             
             # check garbage every x seconds
-            t_start = time.time()
-            if (t_start >= t_end):
-                garbage_bin = ultrasonic.getGarbageSonar()
-                garbage_capacity = ultrasonic.capacity(garbage_bin)
-                print("Capacity is %.2f full"%(garbage_capacity))
-                if (garbage_capacity > 80):
-                    GPIO.output(red_garbage, GPIO.HIGH)
-                    if (current_time - g_last_notification_time > notification_interval):
-                        send_webhook(webhook_url, "Alert: Garbage bin is more than %.2f full. Please clear it."%(garbage_capacity))
-                        g_last_notification_time = current_time
-                else:
-                   GPIO.output(red_garbage, GPIO.LOW)
-                recycle_bin = ultrasonic.getRecycleSonar()
-                recycle_capacity = ultrasonic.capacity(recycle_bin)
-                print("Capacity is %.2f full"%(recycle_capacity))
+            # t_start = time.time()
+            # if (t_start >= t_end):
+            #     garbage_bin = ultrasonic.getGarbageSonar()
+            #     garbage_capacity = ultrasonic.capacity(garbage_bin)
+            #     print("Capacity is %.2f full"%(garbage_capacity))
+            #     if (garbage_capacity > 80):
+            #         GPIO.output(red_garbage, GPIO.HIGH)
+            #         if (current_time - g_last_notification_time > notification_interval):
+            #             send_webhook(webhook_url, "Alert: Garbage bin is more than %.2f full. Please clear it."%(garbage_capacity))
+            #             g_last_notification_time = current_time
+            #     else:
+            #        GPIO.output(red_garbage, GPIO.LOW)
+            #     recycle_bin = ultrasonic.getRecycleSonar()
+            #     recycle_capacity = ultrasonic.capacity(recycle_bin)
+            #     print("Capacity is %.2f full"%(recycle_capacity))
                 
-                if (recycle_capacity > 80):
-                  GPIO.output(red_recycle, GPIO.HIGH)
-                    if (current_time - r_last_notification_time > notification_interval):
-                        send_webhook(webhook_url, "Alert: Recycle bin is more than %.2f full. Please clear it."%(recycle_capacity))
-                        r_last_notification_time = current_time
-                else:
-                    GPIO.output(red_recycle, GPIO.LOW)
-                compost_bin = ultrasonic.getCompostSonar()
-                compost_capacity = ultrasonic.capacity(compost_bin)
-                print("Capacity is %.2f full"%(compost_capacity))
+            #     if (recycle_capacity > 80):
+            #       GPIO.output(red_recycle, GPIO.HIGH)
+            #         if (current_time - r_last_notification_time > notification_interval):
+            #             send_webhook(webhook_url, "Alert: Recycle bin is more than %.2f full. Please clear it."%(recycle_capacity))
+            #             r_last_notification_time = current_time
+            #     else:
+            #         GPIO.output(red_recycle, GPIO.LOW)
+            #     compost_bin = ultrasonic.getCompostSonar()
+            #     compost_capacity = ultrasonic.capacity(compost_bin)
+            #     print("Capacity is %.2f full"%(compost_capacity))
                 
-                if (compost_capacity > 80):
-                   GPIO.output(red_compost, GPIO.HIGH)
-                   if (current_time - c_last_notification_time > notification_interval):
-                       send_webhook(webhook_url, "Alert: Compost bin is more than %.2f full. Please clear it."%(compost_capacity))
-                       c_last_notification_time = current_time
-                else:
-                    GPIO.output(red_compost, GPIO.LOW)
-                t_end += 10
+            #     if (compost_capacity > 80):
+            #        GPIO.output(red_compost, GPIO.HIGH)
+            #        if (current_time - c_last_notification_time > notification_interval):
+            #            send_webhook(webhook_url, "Alert: Compost bin is more than %.2f full. Please clear it."%(compost_capacity))
+            #            c_last_notification_time = current_time
+            #     else:
+            #         GPIO.output(red_compost, GPIO.LOW)
+            #     t_end += 10
             
             time.sleep(0.5) # higher number cause delay on camera
                 
